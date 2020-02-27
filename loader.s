@@ -23,3 +23,5 @@ global loader                   ; the entry symbol for ELF
         call main
     .loop:
         jmp .loop                   ; loop forever
+
+
