@@ -1,9 +1,5 @@
 #include "io.h"
 #include "string.h"
-#include "serial.h"
-#include "interrupts.h"
-#include "memory_segments.h"
-
 
 /**
  * For the framebuffer,
@@ -149,17 +145,73 @@ void unmarkAllMemory()
     }
 }
 
+#define KBD_DATA_PORT 0x60
+
+/** read_scan_code:
+ *  Reads a scan code from the keyboard
+ *
+ *  @return The scan code (NOT an ASCII character!)
+ */
+unsigned char read_scan_code(void)
+{
+    return inb(KBD_DATA_PORT);
+}
+
+
+#define PIC1_PORT_A 0x20
+#define PIC2_PORT_A 0xA0
+
+/* The PIC interrupts have been remapped */
+#define PIC1_START_INTERRUPT 0x20
+#define PIC2_START_INTERRUPT 0x28
+#define PIC2_END_INTERRUPT   PIC2_START_INTERRUPT + 7
+
+#define PIC_ACK     0x20
+
+/** pic_acknowledge:
+ *  Acknowledges an interrupt from either PIC 1 or PIC 2.
+ *
+ *  @param num The number of the interrupt
+ */
+void pic_acknowledge(unsigned int interrupt)
+{
+    if (interrupt < PIC1_START_INTERRUPT || interrupt > PIC2_END_INTERRUPT) {
+        return;
+    }
+
+    if (interrupt < PIC2_START_INTERRUPT) {
+        outb(PIC1_PORT_A, PIC_ACK);
+    } else {
+        outb(PIC2_PORT_A, PIC_ACK);
+    }
+}
+static unsigned char keyboard_scan_code_to_ascii[256] =
+{
+	0x0, 0x0, '1', '2', '3', '4', '5', '6',		// 0 - 7
+	'7', '8', '9', '0', '-', '=', 0x0, 0x0,		// 8 - 15
+	'q', 'w', 'e', 'r', 't', 'y', 'u', 'i',		// 16 - 23
+	'o', 'p', '[', ']', '\n', 0x0, 'a', 's',	// 24 - 31
+	'd', 'f', 'g', 'h', 'j', 'k', 'l', ';',		// 32 - 39
+	'\'', '`', 0x0, '\\', 'z', 'x', 'c', 'v',	// 40 - 47
+	'b', 'n', 'm', ',', '.', '/', 0x0, '*',		// 48 - 55
+	0x0, ' ', 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,		// 56 - 63
+	0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, '7',		// 64 - 71
+	'8', '9', '-', '4', '5', '6', '+', '1',		// 72 - 79
+	'2', '3', '0', '.'				// 80 - 83
+};
+
 int main() 
 {
     //prepare OS for handing out mem
     unmarkAllMemory();
 
-//    char* s;
-    fb_clear();
 
-	
-	test_serial_port();
-    segments_install_gdt();
-    interrupts_install_idt();
+    char* s;
+    fb_clear();
+    s = getMem(1);//dataSpaceStart; //malloc 5 * sizeof(char) -> give me 5 bytes
+    *s = keyboard_scan_code_to_ascii[read_scan_code()];
+
+    fb_write_string(160, s, 1);
+    pic_acknowledge(PIC1_PORT_A);
     return 0;
 }
