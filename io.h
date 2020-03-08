@@ -26,6 +26,4 @@
      *  @param fg The foreground color
      *  @param bg The background color
      */
-
-    
 #endif /* INCLUDE_IO_H */
