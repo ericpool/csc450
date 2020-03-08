@@ -38,18 +38,6 @@ void interrupts_install_idt()
 	pic_remap(PIC_1_OFFSET, PIC_2_OFFSET);
 }
 
-int isValid(char c)
-{
-	char str[] = "0123456789abcdefghijklmnopqrstuvwxyz";
-	for (int i = 0; i < 37; i++)
-	{
-		if(str[i] == c)
-		{
-			return 1;
-		}
-	}
-	return 0;	
-}
 
 void interrupt_handler(__attribute__((unused)) struct cpu_state cpu, unsigned int interrupt, __attribute__((unused)) struct stack_state stack)
 {
@@ -58,7 +46,7 @@ void interrupt_handler(__attribute__((unused)) struct cpu_state cpu, unsigned in
 	
     scan_code = keyboard_read_scan_code();
     ascii = keyboard_scan_code_to_ascii(scan_code);
-	if(isValid(ascii) != 1)
+	if(ascii == 0x0)
 	{
 		
 		pic_acknowledge(interrupt);
@@ -66,12 +54,10 @@ void interrupt_handler(__attribute__((unused)) struct cpu_state cpu, unsigned in
 	}
 	else
 	{
-		// char* s = getMem(1);
-		// s[0] = ascii;
-				counter += 2;
-		fb_write_cell(counter, ascii, FB_BLACK, FB_WHITE);
+		fb_write_cell(counter, ascii, FB_BLACK, FB_LIGHT_GREEN);
 
 		pic_acknowledge(interrupt);
+		counter += 2;
 	}
 
 }
